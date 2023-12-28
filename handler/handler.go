@@ -9,7 +9,7 @@ import (
 
 func Login(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Fprintf(w, "Hello, %s!", samlsp.AttributeFromContext(r.Context(), "name"))
+	fmt.Fprintln(w, "Hello, ", samlsp.AttributeFromContext(r.Context(), "name"), " !!!")
 
 	s := samlsp.SessionFromContext(r.Context())
 	if s == nil {
@@ -20,5 +20,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	fmt.Fprintf(w, "Token contents, %+v!", sa.GetAttributes())
+
+	fmt.Fprintln(w, "Name : ", sa.GetAttributes().Get("name"))
+	fmt.Fprintln(w, "Email : ", sa.GetAttributes().Get("email"))
+
 }
