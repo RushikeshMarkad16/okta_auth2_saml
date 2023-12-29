@@ -12,33 +12,31 @@ import (
 	"github.com/crewjam/saml/samlsp"
 )
 
-var (
-	SamlSP *samlsp.Middleware
-)
+var SamlSP *samlsp.Middleware
 
-func congifSP() {
+func serviceProviderConfig() error {
 	keyPair, err := tls.LoadX509KeyPair("../myservice.cert", "../myservice.key")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	keyPair.Leaf, err = x509.ParseCertificate(keyPair.Certificate[0])
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	idpMetadataURL, err := url.Parse("https://dev-64613000.okta.com/app/exke1hterjGJvfW4w5d7/sso/saml/metadata")
 	if err != nil {
-		panic(err)
+		return err
 	}
 	idpMetadata, err := samlsp.FetchMetadata(context.Background(), http.DefaultClient,
 		*idpMetadataURL)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	rootURL, err := url.Parse("http://localhost:8080")
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	SamlSP, err = samlsp.New(samlsp.Options{
@@ -51,11 +49,15 @@ func congifSP() {
 
 	if err != nil {
 		fmt.Println("Error : ", err)
-		panic(err)
+		return err
 
 	}
+	return nil
 }
 
 func Load() {
-	congifSP()
+	err := serviceProviderConfig()
+	if err != nil {
+		fmt.Println("Error : ", err)
+	}
 }
