@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/RushikeshMarkad16/saml_test/config"
-	"github.com/RushikeshMarkad16/saml_test/server"
+	"github.com/RushikeshMarkad16/okta_auth2_saml/config"
+	"github.com/RushikeshMarkad16/okta_auth2_saml/server"
 )
 
 func main() {

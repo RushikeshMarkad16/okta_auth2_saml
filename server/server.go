@@ -2,16 +2,20 @@ package server
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/urfave/negroni"
 )
 
+// StartServer ...
 func StartServer() {
 	server := negroni.Classic()
 
 	router := InitRouter()
 
 	server.UseHandler(router)
-	server.Run(fmt.Sprintf(":%s", "8080"))
+
+	port := os.Getenv("PORT")
+	server.Run(fmt.Sprintf(":%s", port))
 
 }
