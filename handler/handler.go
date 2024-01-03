@@ -14,7 +14,7 @@ import (
 
 func HandleLandingPage(w http.ResponseWriter, r *http.Request) {
 
-	tmpl, err := template.ParseFiles("../template/index.html")
+	tmpl, err := template.ParseFiles("./template/index.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -32,7 +32,7 @@ func HandleLandingPage(w http.ResponseWriter, r *http.Request) {
 // HandleSamlLogin ...
 func HandleSamlLogin(w http.ResponseWriter, r *http.Request) {
 
-	tmpl, err := template.ParseFiles("../template/home.html")
+	tmpl, err := template.ParseFiles("./template/home.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -111,7 +111,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpl, err := template.ParseFiles("../template/home.html")
+	tmpl, err := template.ParseFiles("./template/home.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

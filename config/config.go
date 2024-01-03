@@ -38,7 +38,7 @@ func oauthConfig() {
 }
 
 func samlConfig() {
-	keyPair, err := tls.LoadX509KeyPair("../key/certificate.pem", "../key/privatekey.pem")
+	keyPair, err := tls.LoadX509KeyPair("./key/certificate.pem", "./key/privatekey.pem")
 	if err != nil {
 		fmt.Println("Error : ", err)
 	}
@@ -57,13 +57,13 @@ func samlConfig() {
 		fmt.Println("Error : ", err)
 	}
 
-	rootURL, err := url.Parse("http://localhost:8080")
+	rootURL, err := url.Parse(os.Getenv("RootURL"))
 	if err != nil {
 		fmt.Println("Error : ", err)
 	}
 
 	SamlSP, err = samlsp.New(samlsp.Options{
-		EntityID:    "http://localhost:8080",
+		EntityID:    os.Getenv("EntityID"),
 		URL:         *rootURL,
 		Key:         keyPair.PrivateKey.(*rsa.PrivateKey),
 		Certificate: keyPair.Leaf,
@@ -79,7 +79,7 @@ func samlConfig() {
 
 // Load ...
 func Load() {
-	err := godotenv.Load("../.env")
+	err := godotenv.Load("./.env")
 	if err != nil {
 		fmt.Println("error : ", err)
 		log.Fatal("Error loading .env file")
