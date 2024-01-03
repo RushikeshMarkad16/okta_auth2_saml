@@ -6,10 +6,28 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 
 	"github.com/RushikeshMarkad16/okta_auth2_saml/config"
 	"github.com/crewjam/saml/samlsp"
 )
+
+func HandleLandingPage(w http.ResponseWriter, r *http.Request) {
+
+	tmpl, err := template.ParseFiles("../template/index.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := struct{}{}
+
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
 
 // HandleSamlLogin ...
 func HandleSamlLogin(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +97,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	client := config.OktaOauthConfig.Client(context.Background(), token)
 
 	// Fetch user information from the Okta UserInfo endpoint
-	response, err := client.Get("https://dev-64613000.okta.com/oauth2/default/v1/userinfo")
+	response, err := client.Get(os.Getenv("UserInfoEndpoint"))
 	if err != nil {
 		http.Error(w, "Failed to get user info", http.StatusBadRequest)
 		return

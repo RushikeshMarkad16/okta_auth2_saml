@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/RushikeshMarkad16/okta_auth2_saml/utils"
+	"github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
@@ -37,7 +38,7 @@ func oauthConfig() {
 }
 
 func samlConfig() {
-	keyPair, err := tls.LoadX509KeyPair("../key/myservice.cert", "../key/myservice.key")
+	keyPair, err := tls.LoadX509KeyPair("../key/certificate.pem", "../key/privatekey.pem")
 	if err != nil {
 		fmt.Println("Error : ", err)
 	}
@@ -46,7 +47,7 @@ func samlConfig() {
 		fmt.Println("Error : ", err)
 	}
 
-	idpMetadataURL, err := url.Parse("https://dev-64613000.okta.com/app/exke1hterjGJvfW4w5d7/sso/saml/metadata")
+	idpMetadataURL, err := url.Parse(os.Getenv("MetadataURL"))
 	if err != nil {
 		fmt.Println("Error : ", err)
 	}
@@ -67,8 +68,10 @@ func samlConfig() {
 		Key:         keyPair.PrivateKey.(*rsa.PrivateKey),
 		Certificate: keyPair.Leaf,
 		IDPMetadata: idpMetadata,
+		SignRequest: true,
 	})
-
+	// SamlSP.ServiceProvider.AuthnNameIDFormat = saml.UnspecifiedNameIDFormat
+	SamlSP.Binding = saml.HTTPPostBinding
 	if err != nil {
 		fmt.Println("Error : ", err)
 	}

@@ -12,8 +12,10 @@ import (
 func InitRouter() (router *mux.Router) {
 
 	router = mux.NewRouter()
-	oAuthRouter := router.PathPrefix("").Subrouter()
 
+	router.HandleFunc("/login", handler.HandleLandingPage).Methods(http.MethodGet)
+
+	oAuthRouter := router.PathPrefix("").Subrouter()
 	oAuthRouter.HandleFunc("/oauth/login", handler.HandleOauthLogin).Methods(http.MethodGet)
 	oAuthRouter.HandleFunc("/authorization-code/callback", handler.HandleCallback).Methods(http.MethodGet)
 	http.Handle("/", router)
