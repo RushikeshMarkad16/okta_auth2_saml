@@ -38,7 +38,7 @@ func oauthConfig() {
 }
 
 func samlConfig() {
-	keyPair, err := tls.LoadX509KeyPair("./key/certificate.pem", "./key/privatekey.pem")
+	keyPair, err := tls.LoadX509KeyPair("./certificate.pem", "./privatekey.pem")
 	if err != nil {
 		fmt.Println("Error : ", err)
 	}
