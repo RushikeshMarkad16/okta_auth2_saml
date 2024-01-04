@@ -1,0 +1,4 @@
+.env
+certificate.pem
+csr.pem
+privatekey.pem
