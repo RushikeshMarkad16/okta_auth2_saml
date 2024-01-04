@@ -18,6 +18,9 @@ func InitRouter() (router *mux.Router) {
 	oAuthRouter := router.PathPrefix("").Subrouter()
 	oAuthRouter.HandleFunc("/oauth/login", handler.HandleOauthLogin).Methods(http.MethodGet)
 	oAuthRouter.HandleFunc("/authorization-code/callback", handler.HandleCallback).Methods(http.MethodGet)
+	oAuthRouter.HandleFunc("/home", handler.HandleHome).Methods(http.MethodGet)
+	oAuthRouter.HandleFunc("/logout", handler.HandleOauthLogout).Methods(http.MethodGet)
+	oAuthRouter.HandleFunc("/logout/callback", handler.HandleLogoutCallback).Methods(http.MethodGet)
 	http.Handle("/", router)
 
 	samlRouter := router.PathPrefix("").Subrouter()
