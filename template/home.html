@@ -24,6 +24,16 @@
 				color: #666;
 				margin: 5px 0;
 			}
+			.logout-btn {
+				background: blueviolet;
+				width: 100px;
+				height: 30px;
+				border: none;
+				border-radius: 5px;
+				font-size: 15px;
+				color: white;
+				cursor: pointer;
+			}
 		</style>
 	</head>
 	<body>
@@ -32,5 +42,12 @@
 			<p><strong>Name:</strong> {{.Name}}</p>
 			<p><strong>Email:</strong> {{.Email}}</p>
 		</div>
+		<div>
+			<!-- <a href="http://localhost:8080/logout"> -->
+			<a href="https://okta-auth2-saml.onrender.com/logout">
+				<button class="logout-btn" type="button">logout</button>
+			</a>
+		</div>
+		
 	</body>
 	</html>

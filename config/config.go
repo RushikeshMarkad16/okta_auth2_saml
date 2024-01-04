@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/RushikeshMarkad16/okta_auth2_saml/utils"
 	"github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/joho/godotenv"
@@ -19,9 +18,8 @@ import (
 )
 
 var (
-	SamlSP           *samlsp.Middleware
-	OktaOauthConfig  *oauth2.Config
-	OauthStateString = utils.GenerateRandomState(10)
+	SamlSP          *samlsp.Middleware
+	OktaOauthConfig *oauth2.Config
 )
 
 func oauthConfig() {

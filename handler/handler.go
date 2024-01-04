@@ -9,7 +9,17 @@ import (
 	"os"
 
 	"github.com/RushikeshMarkad16/okta_auth2_saml/config"
+	"github.com/RushikeshMarkad16/okta_auth2_saml/utils"
 	"github.com/crewjam/saml/samlsp"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
+)
+
+var (
+	Token        *oauth2.Token
+	sessionStore = sessions.NewCookieStore([]byte("sdfg34jb%^"))
+	IDToken      string
+	Client       *http.Client
 )
 
 func HandleLandingPage(w http.ResponseWriter, r *http.Request) {
@@ -64,19 +74,42 @@ func HandleSamlLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleOauthLogin ...
 func HandleOauthLogin(w http.ResponseWriter, r *http.Request) {
+
+	OauthStateString := utils.GenerateRandomState(10)
+
+	session, err := sessionStore.Get(r, "okta-session")
+	if err != nil {
+		http.Error(w, "Failed to get session", http.StatusInternalServerError)
+		return
+	}
+	session.Values["state"] = OauthStateString
+	session.Save(r, w)
+
 	// Generate authorization url with state
-	url := config.OktaOauthConfig.AuthCodeURL(config.OauthStateString)
+	url := config.OktaOauthConfig.AuthCodeURL(OauthStateString)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 // HandleCallback ...
 func HandleCallback(w http.ResponseWriter, r *http.Request) {
 
-	// Get state from query parameter
-	state := r.URL.Query().Get("state")
+	var err error
 
-	// Check if the state matches the expected OAuth state string
-	if state != config.OauthStateString {
+	session, err := sessionStore.Get(r, "okta-session")
+	if err != nil {
+		http.Error(w, "Failed to get session", http.StatusInternalServerError)
+		return
+	}
+
+	storedState, ok := session.Values["state"].(string)
+	if !ok {
+		http.Error(w, "Invalid session state", http.StatusBadRequest)
+		return
+	}
+
+	// Check the state returned in the callback matches the stored state
+	state := r.URL.Query().Get("state")
+	if state != storedState {
 		http.Error(w, "Invalid oauth state", http.StatusBadRequest)
 		return
 	}
@@ -86,18 +119,37 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("code : ", code)
 
 	// Exchange token for authorization code
-	token, err := config.OktaOauthConfig.Exchange(context.Background(), code)
+	Token, err = config.OktaOauthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		http.Error(w, "Failed to exchange token", http.StatusBadRequest)
 		return
 	}
-	fmt.Println("AccessToken : ", token.AccessToken)
+	fmt.Println("AccessToken : ", Token.AccessToken)
+
+	IDToken, ok = Token.Extra("id_token").(string)
+	if !ok {
+		http.Error(w, "ID token not found", http.StatusBadRequest)
+		return
+	}
+	fmt.Println("IDToken : ", IDToken)
+
+	session.Values["id_token"] = IDToken
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, "Failed to save session", http.StatusInternalServerError)
+		return
+	}
 
 	// Create an HTTP client
-	client := config.OktaOauthConfig.Client(context.Background(), token)
+	Client = config.OktaOauthConfig.Client(context.Background(), Token)
+
+	http.Redirect(w, r, "/home", http.StatusFound)
+}
+
+func HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch user information from the Okta UserInfo endpoint
-	response, err := client.Get(os.Getenv("UserInfoEndpoint"))
+	response, err := Client.Get(os.Getenv("UserInfoEndpoint"))
 	if err != nil {
 		http.Error(w, "Failed to get user info", http.StatusBadRequest)
 		return
@@ -107,7 +159,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	var userInfo map[string]interface{}
 	err = json.NewDecoder(response.Body).Decode(&userInfo)
 	if err != nil {
-		http.Error(w, "Failed to parse userInfo", http.StatusBadRequest)
+		http.Error(w, "Failed to parse UserInfo", http.StatusBadRequest)
 		return
 	}
 
@@ -126,4 +178,28 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func HandleOauthLogout(w http.ResponseWriter, r *http.Request) {
+
+	session, err := sessionStore.Get(r, "okta-session")
+	if err != nil {
+		http.Error(w, "Failed to get session", http.StatusInternalServerError)
+		return
+	}
+
+	idToken := session.Values["id_token"].(string)
+	session.Values = map[interface{}]interface{}{}
+	session.Options.MaxAge = -1
+	session.Save(r, w)
+
+	oktaLogoutURL := os.Getenv("LOGOUT_URL") + fmt.Sprintf("?id_token_hint=%s&post_logout_redirect_uri=%s", idToken, "http://localhost:8080/logout/callback")
+	fmt.Println("oktaLogoutURL : ", oktaLogoutURL)
+
+	http.Redirect(w, r, oktaLogoutURL, http.StatusFound)
+
+}
+
+func HandleLogoutCallback(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/login", http.StatusFound)
 }
