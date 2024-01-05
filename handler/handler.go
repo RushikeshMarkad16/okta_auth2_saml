@@ -6,19 +6,18 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/RushikeshMarkad16/okta_auth2_saml/config"
 	"github.com/RushikeshMarkad16/okta_auth2_saml/utils"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/gorilla/sessions"
-	"golang.org/x/oauth2"
 )
 
 var (
-	Token        *oauth2.Token
 	sessionStore = sessions.NewCookieStore([]byte("sdfg34jb%^"))
-	IDToken      string
 	Client       *http.Client
 )
 
@@ -119,21 +118,22 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("code : ", code)
 
 	// Exchange token for authorization code
-	Token, err = config.OktaOauthConfig.Exchange(context.Background(), code)
+	token, err := config.OktaOauthConfig.Exchange(context.Background(), code)
 	if err != nil {
 		http.Error(w, "Failed to exchange token", http.StatusBadRequest)
 		return
 	}
-	fmt.Println("AccessToken : ", Token.AccessToken)
+	fmt.Println("AccessToken : ", token.AccessToken)
 
-	IDToken, ok = Token.Extra("id_token").(string)
+	idToken, ok := token.Extra("id_token").(string)
 	if !ok {
 		http.Error(w, "ID token not found", http.StatusBadRequest)
 		return
 	}
-	fmt.Println("IDToken : ", IDToken)
+	fmt.Println("idToken : ", idToken)
 
-	session.Values["id_token"] = IDToken
+	session.Values["id_token"] = idToken
+	session.Values["access_token"] = token.AccessToken
 	err = session.Save(r, w)
 	if err != nil {
 		http.Error(w, "Failed to save session", http.StatusInternalServerError)
@@ -141,17 +141,18 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create an HTTP client
-	Client = config.OktaOauthConfig.Client(context.Background(), Token)
+	Client = config.OktaOauthConfig.Client(context.Background(), token)
 
 	http.Redirect(w, r, "/home", http.StatusFound)
 }
 
+// HandleHome ...
 func HandleHome(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch user information from the Okta UserInfo endpoint
 	response, err := Client.Get(os.Getenv("UserInfoEndpoint"))
-	if err != nil {
-		http.Error(w, "Failed to get user info", http.StatusBadRequest)
+	if err != nil || response.StatusCode != http.StatusOK {
+		http.Error(w, "Invalid access token", response.StatusCode)
 		return
 	}
 	defer response.Body.Close()
@@ -180,6 +181,7 @@ func HandleHome(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleOauthLogout ...
 func HandleOauthLogout(w http.ResponseWriter, r *http.Request) {
 
 	session, err := sessionStore.Get(r, "okta-session")
@@ -189,9 +191,6 @@ func HandleOauthLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	idToken := session.Values["id_token"].(string)
-	session.Values = map[interface{}]interface{}{}
-	session.Options.MaxAge = -1
-	session.Save(r, w)
 
 	oktaLogoutURL := os.Getenv("LOGOUT_URL") + fmt.Sprintf("?id_token_hint=%s&post_logout_redirect_uri=%s", idToken, "http://localhost:8080/logout/callback")
 	fmt.Println("oktaLogoutURL : ", oktaLogoutURL)
@@ -200,6 +199,45 @@ func HandleOauthLogout(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// HandleLogoutCallback ...
 func HandleLogoutCallback(w http.ResponseWriter, r *http.Request) {
+
+	session, err := sessionStore.Get(r, "okta-session")
+	if err != nil {
+		http.Error(w, "Failed to get session", http.StatusInternalServerError)
+		return
+	}
+
+	accessToken := session.Values["access_token"].(string)
+
+	session.Values = map[interface{}]interface{}{}
+	session.Options.MaxAge = -1
+	session.Save(r, w)
+
+	data := url.Values{}
+	data.Set("token", accessToken)
+	data.Set("token_type_hint", "access_token")
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", os.Getenv("REVOKE_TOKEN_URL"), strings.NewReader(data.Encode()))
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	req.Header.Add("Authorization", "Basic MG9hZHphbG11M0JrQTZKdVo1ZDc6V0pDa1RHaHVhbmM3ODYwNFFfN05FQ0RmYjJDVHh5b2FNVGd4ZG5MQk1uTXNkc21BdVJVazJ1X2tsZDNuV01NZA==")
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	fmt.Println("req", req)
+	res, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if res.StatusCode != http.StatusOK {
+		http.Error(w, "Invalid req", res.StatusCode)
+		return
+	}
+
 	http.Redirect(w, r, "/login", http.StatusFound)
 }
