@@ -192,7 +192,7 @@ func HandleOauthLogout(w http.ResponseWriter, r *http.Request) {
 
 	idToken := session.Values["id_token"].(string)
 
-	oktaLogoutURL := os.Getenv("LOGOUT_URL") + fmt.Sprintf("?id_token_hint=%s&post_logout_redirect_uri=%s", idToken, "http://localhost:8080/logout/callback")
+	oktaLogoutURL := os.Getenv("LOGOUT_URL") + fmt.Sprintf("?id_token_hint=%s&post_logout_redirect_uri=%s", idToken, "https://okta-auth2-saml.onrender.com/logout/callback")
 	fmt.Println("oktaLogoutURL : ", oktaLogoutURL)
 
 	http.Redirect(w, r, oktaLogoutURL, http.StatusFound)
