@@ -51,6 +51,7 @@ func HandleSamlLogin(w http.ResponseWriter, r *http.Request) {
 	//  Get SAML session from the request context
 	s := samlsp.SessionFromContext(r.Context())
 	if s == nil {
+		fmt.Println("Session does not exist")
 		// if no session return
 		return
 	}
@@ -64,12 +65,49 @@ func HandleSamlLogin(w http.ResponseWriter, r *http.Request) {
 	data := map[string]string{
 		"Name":  sa.GetAttributes().Get("name"),
 		"Email": sa.GetAttributes().Get("email"),
+		"Type":  "saml",
 	}
 
 	if err := tmpl.Execute(w, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+// HandleSamlLogout ...
+func HandleSamlLogout(w http.ResponseWriter, r *http.Request) {
+
+	// Get session from the request context
+	s := samlsp.SessionFromContext(r.Context())
+	if s == nil {
+		fmt.Println("Session does not exist")
+		return
+	}
+
+	sa, ok := s.(samlsp.SessionWithAttributes)
+	if !ok {
+		return
+	}
+
+	// Generate a SAML LogoutRequest
+	logoutURL, err := config.SamlSP.ServiceProvider.MakeRedirectLogoutRequest(sa.GetAttributes().Get("email"), "")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating LogoutRequest: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	err = config.SamlSP.Session.DeleteSession(w, r)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error deleting cookies: %s", err), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, logoutURL.String(), http.StatusFound)
+}
+
+// SamlSLOLogout ...
+func SamlSLOLogout(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/login", http.StatusFound)
 }
 
 // HandleOauthLogin ...

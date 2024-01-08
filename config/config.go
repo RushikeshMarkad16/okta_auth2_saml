@@ -27,7 +27,7 @@ func oauthConfig() {
 		ClientID:     os.Getenv("ClientID"),
 		ClientSecret: os.Getenv("ClientSecret"),
 		RedirectURL:  os.Getenv("RedirectURL"),
-		Scopes:       []string{"openid", "profile", "email"},
+		Scopes:       []string{"openid", "profile", "email", "address", "phone"},
 		Endpoint: oauth2.Endpoint{
 			TokenURL: os.Getenv("TokenURL"),
 			AuthURL:  os.Getenv("AuthURL"),

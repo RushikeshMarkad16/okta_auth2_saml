@@ -43,10 +43,17 @@
 			<p><strong>Email:</strong> {{.Email}}</p>
 		</div>
 		<div>
-			<!-- <a href="http://localhost:8080/logout"> -->
-			<a href="https://okta-auth2-saml.onrender.com/logout">
-				<button class="logout-btn" type="button">logout</button>
-			</a>
+			{{if eq .Type "saml"}}
+				<!-- <a href="http://localhost:8080/saml/logout"> -->
+				<a href="https://okta-auth2-saml.onrender.com/saml/logout">
+					<button class="logout-btn" type="button">logout</button>
+				</a>
+			{{else}}
+				<!-- <a href="http://localhost:8080/logout"> -->
+				<a href="https://okta-auth2-saml.onrender.com/logout">
+					<button class="logout-btn" type="button">logout</button>
+				</a>
+			{{end}}			
 		</div>
 		
 	</body>

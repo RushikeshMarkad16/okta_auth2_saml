@@ -26,6 +26,8 @@ func InitRouter() (router *mux.Router) {
 	samlRouter := router.PathPrefix("").Subrouter()
 	samlRouter.Handle("/saml/login", config.SamlSP.RequireAccount(http.HandlerFunc(handler.HandleSamlLogin))).Methods(http.MethodGet)
 	samlRouter.Handle("/saml/acs", config.SamlSP).Methods(http.MethodPost)
+	samlRouter.Handle("/saml/logout", config.SamlSP.RequireAccount(http.HandlerFunc(handler.HandleSamlLogout)))
+	samlRouter.HandleFunc("/saml/slo/logout", handler.SamlSLOLogout)
 
 	return
 }
